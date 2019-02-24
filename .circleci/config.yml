@@ -29,6 +29,7 @@ jobs:
       - run: go get -u github.com/mitchellh/gox
       - run: go get -u github.com/tcnksm/ghr
       - run: go get -u github.com/stevenmatthewt/semantics
+      - run: go get -u github.com/urfave/cli
       - run:
           name: cross compile
           command: |
