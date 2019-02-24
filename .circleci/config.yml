@@ -30,7 +30,8 @@ jobs:
       - run: go get -u github.com/tcnksm/ghr
       - run: go get -u github.com/stevenmatthewt/semantics
       - run: go get -u github.com/urfave/cli
-      - run: go get -u golang.org/x/net/publicsuffix
+      - run: go get -u github.com/likexian/whois-go
+      - run: go get -u github.com/likexian/whois-parser-go
       - run:
           name: cross compile
           command: |

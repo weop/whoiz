@@ -9,10 +9,9 @@ import (
   "log"
   "io/ioutil"
   "os"
-  "bytes"
-  "os/exec"
   "github.com/urfave/cli"
-  "golang.org/x/net/publicsuffix"
+  "github.com/likexian/whois-go"
+  "github.com/likexian/whois-parser-go"
 )
 
 //////////
@@ -34,55 +33,47 @@ func main() {
   app.Action = func(c *cli.Context) error {
     domainName := string(c.Args().Get(0))
 
-	tldomain, _ := publicsuffix.EffectiveTLDPlusOne(domainName)
-	if ( len(tldomain) <= 1 ){
-		println ("Invalid domain provided!");
-		return nil; //Lets not proceed without a valid TLD
-	}
-	
 
-    cmd := exec.Command("bash","-c","whois "+tldomain+"| head -n10")
-    //todo is there a golib for whois?
-    cmdOutput := &bytes.Buffer{}
-    cmd.Stdout = cmdOutput
+    fmt.Printf("\nDomain Reg:")
+	whoisResult, err := whois.Whois(domainName)
+	result, err := whoisparser.Parse(whoisResult)
+	if err == nil {
+	    fmt.Printf("\n\tRegistrant:     "+result.Registrant.Name)
+	    fmt.Printf("\n\tEmail:          "+result.Registrant.Email)
 
-    err := cmd.Run()
-    if err != nil {
-     os.Stderr.WriteString(err.Error())
-    }
-    if bytes.Contains(cmdOutput.Bytes(), []byte("No whois")) {
-	   	println("No whois server known for the provided domain name!");
-		return nil;
+	    fmt.Printf("\n\tDomain Status:  "+result.Registrar.DomainStatus)
+	    fmt.Printf("\n\tCreated Date:   "+result.Registrar.CreatedDate)
+	    fmt.Printf("\n\tExpiration Date:"+result.Registrar.ExpirationDate)
+	}else{
+    	fmt.Printf("\n\tNo whois information available for "+domainName+" \n")
 	}
-    fmt.Printf("\nDomain Reg:\n")
-    fmt.Print(string(cmdOutput.Bytes()))
 
     fmt.Printf("\nHTTPS:\n")
     http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
     res, err := http.Get("https://"+domainName)
    
     if err != nil {
-		fmt.Printf("   Reply: Invalid Response!\n")
+		fmt.Printf("\tReply: Invalid Response!\n")
     }else{
 	    if res.StatusCode >= 200 && res.StatusCode <= 299 {
-	        fmt.Printf("   Reply: Valid [%d]\n", res.StatusCode)
+	        fmt.Printf("\tReply: Valid [%d]\n", res.StatusCode)
 	    } else {
-	        fmt.Printf("   Reply: Invalid [%d]\n", res.StatusCode)
+	        fmt.Printf("\tReply: Invalid [%d]\n", res.StatusCode)
 	    }    	
 	    //Capture Page Title
 	    htmlBytes, _ := ioutil.ReadAll(res.Body)
 	    htmlStr := string(htmlBytes)
 	    domStart := strings.Index(htmlStr, "<title>") //get title
 	    if domStart == -1 {
-			 fmt.Printf("   No Page Title Found.\n")
+			 fmt.Printf("\tNo Page Title Found.\n")
 	    }else{
 		    domStart += 7 //skips <title>
 		    domEnd := strings.Index(htmlStr, "</title>")  //get ending
 		    if domEnd == -1 {
-				 fmt.Printf("   Error in Title.\n")
+				 fmt.Printf("\tError in Title.\n")
 		    }else{
 				siteTitle := []byte(htmlStr[domStart:domEnd])
-				fmt.Printf("   Page Title: %s\n", siteTitle)	    	
+				fmt.Printf("\tPage Title: %s\n", siteTitle)	    	
 		    }
 	    }
     }
@@ -92,42 +83,42 @@ func main() {
     fmt.Printf("\nHost(s):\n")
     ips, err := net.LookupIP(domainName)
     if err != nil {
-		fmt.Printf("   [got errors]\n")
+		fmt.Printf("[!]\n")
 	}else if len(ips) == 0 {
 		fmt.Printf("No host record found.")
 	}
     for _, ip := range ips {
-		fmt.Printf("   %s\n", ip.String())
+		fmt.Printf("\t%s\n", ip.String())
 	}
 
     fmt.Printf("\nNS record(s):\n")
     nss, err := net.LookupNS(domainName)
 	if err != nil {
-		fmt.Printf("   [got errors]\n")
+		fmt.Printf("[!]\n")
 	} else if len(nss) == 0 {
 		fmt.Printf("No NS records found.")
 	}
 	for _, ns := range nss {
-		fmt.Printf("   %s\n", ns.Host)
+		fmt.Printf("\t%s\n", ns.Host)
 	}
 
 
     fmt.Printf("\nMX record(s):\n")
     mxs, err := net.LookupMX(domainName)
 	if err != nil {
-		fmt.Printf("   [got errors]\n")
+		fmt.Printf("[!]\n")
 	}else if len(mxs) == 0 {
 		fmt.Printf("No MX records found.")
 	}
     for _, mx := range mxs {
-		fmt.Printf("   %s %v\n", mx.Host, mx.Pref)
+		fmt.Printf("\t%s %v\n", mx.Host, mx.Pref)
 	}
 			
 
     fmt.Printf("\nTXT record(s):\n")
     txts, err := net.LookupTXT(domainName)
 	if err != nil {
-		fmt.Printf("   [got errors]\n")
+		fmt.Printf("[!]\n")
 	}else if len(txts) == 0 {
 		fmt.Printf("No TXT records found.")
 	}
