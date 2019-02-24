@@ -10,6 +10,7 @@ jobs:
       - run:
           name: run build
           command: |
+            dep init
             dep ensure
             go build -v
       - run:
