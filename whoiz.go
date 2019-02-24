@@ -60,7 +60,6 @@ func main() {
     fmt.Printf("\nHTTPS:\n")
     http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
     res, err := http.Get("https://"+domainName)
-    defer res.Body.Close()
    
     if err != nil {
 		fmt.Printf("   Reply: Invalid Response!\n")
