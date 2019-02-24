@@ -30,6 +30,7 @@ jobs:
       - run: go get -u github.com/tcnksm/ghr
       - run: go get -u github.com/stevenmatthewt/semantics
       - run: go get -u github.com/urfave/cli
+      - run: go get -u golang.org/x/net/publicsuffix
       - run:
           name: cross compile
           command: |
@@ -39,8 +40,7 @@ jobs:
       - run:
           name: create release
           command: |
-            if git log -1 --pretty=%B | grep "^[0-9]\+\.[0-9]\+\.[0-9]\+$";
-            then
+            if git log -1 --pretty=%B | grep "^[0-9]\+\.[0-9]\+\.[0-9]\+$";then
               version=$(git log -1 --pretty=%B)
               ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace $version dist/
             else
