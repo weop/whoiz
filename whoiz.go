@@ -41,17 +41,18 @@ func main() {
 	    fmt.Printf("\n\tRegistrant:     "+result.Registrant.Name)
 	    fmt.Printf("\n\tEmail:          "+result.Registrant.Email)
 
+	    fmt.Printf("\n\tRegistrar:      "+result.Registrar.RegistrarName+" [#"+result.Registrar.RegistrarID+"]")
 	    fmt.Printf("\n\tDomain Status:  "+result.Registrar.DomainStatus)
 	    fmt.Printf("\n\tCreated Date:   "+result.Registrar.CreatedDate)
 	    fmt.Printf("\n\tExpiration Date:"+result.Registrar.ExpirationDate)
 	}else{
-    	fmt.Printf("\n\tNo whois information available for "+domainName+" \n")
+        fmt.Printf("\n\tNo whois information available for "+domainName+" \n")
 	}
 
     fmt.Printf("\nHTTPS:\n")
     http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
     res, err := http.Get("https://"+domainName)
-   
+
     if err != nil {
 		fmt.Printf("\tReply: Invalid Response!\n")
     }else{
@@ -59,7 +60,7 @@ func main() {
 	        fmt.Printf("\tReply: Valid [%d]\n", res.StatusCode)
 	    } else {
 	        fmt.Printf("\tReply: Invalid [%d]\n", res.StatusCode)
-	    }    	
+	    }
 	    //Capture Page Title
 	    htmlBytes, _ := ioutil.ReadAll(res.Body)
 	    htmlStr := string(htmlBytes)
@@ -73,7 +74,7 @@ func main() {
 				 fmt.Printf("\tError in Title.\n")
 		    }else{
 				siteTitle := []byte(htmlStr[domStart:domEnd])
-				fmt.Printf("\tPage Title: %s\n", siteTitle)	    	
+				fmt.Printf("\tPage Title: %s\n", siteTitle)
 		    }
 	    }
     }
@@ -113,7 +114,7 @@ func main() {
     for _, mx := range mxs {
 		fmt.Printf("\t%s %v\n", mx.Host, mx.Pref)
 	}
-			
+
 
     fmt.Printf("\nTXT record(s):\n")
     txts, err := net.LookupTXT(domainName)
