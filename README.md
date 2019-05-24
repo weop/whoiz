@@ -7,10 +7,10 @@
 a less noisy, more useful whois client.
 
 ## usage 
-whois 
+whoiz 
 
 ex.:
-whois google.com
+whoiz google.com
 
 ## dependencies
 [urfave-cli](https://github.com/urfave/cli)
