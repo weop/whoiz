@@ -12,10 +12,9 @@ whoiz
 ex.:
 whoiz google.com
 
-## dependencies
-[urfave-cli](https://github.com/urfave/cli)
+## thanks
 [whois-go](https://github.com/likexian/whois-go)
 [whois-parser-go](https://github.com/likexian/whois-parser-go)
 
 rel:
-1.0.4
+1.0.41
