@@ -71,7 +71,7 @@ func main() {
 		printTitle("Host(s):")
 		ips, err := net.LookupIP(domainName)
 		if err != nil {
-			fmt.Println("[!]\n")
+			fmt.Println("[!]")
 		} else if len(ips) == 0 {
 			fmt.Println("No host record found.")
 		}
@@ -82,7 +82,7 @@ func main() {
 		printTitle("NS record(s):")
 		nss, err := net.LookupNS(domainName)
 		if err != nil {
-			fmt.Println("[!]\n")
+			fmt.Println("[!]")
 		} else if len(nss) == 0 {
 			fmt.Println("No NS records found.")
 		}
@@ -93,7 +93,7 @@ func main() {
 		printTitle("MX record(s):")
 		mxs, err := net.LookupMX(domainName)
 		if err != nil {
-			fmt.Println("[!]\n")
+			fmt.Println("[!]")
 		} else if len(mxs) == 0 {
 			fmt.Println("No MX records found.")
 		}
@@ -104,7 +104,7 @@ func main() {
 		printTitle("TXT record(s):")
 		txts, err := net.LookupTXT(domainName)
 		if err != nil {
-			fmt.Println("[!]\n")
+			fmt.Println("[!]")
 		} else if len(txts) == 0 {
 			fmt.Println("No TXT records found.")
 		}
