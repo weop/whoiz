@@ -29,7 +29,7 @@ jobs:
       - run: go get -u github.com/mitchellh/gox
       - run: go get -u github.com/tcnksm/ghr
       - run: go get -u github.com/stevenmatthewt/semantics
-      - run: go get -u github.com/urfave/cli@1.19.1
+      - run: go get -u github.com/urfave/cli
       - run: go get -u github.com/likexian/whois-go
       - run: go get -u github.com/likexian/whois-parser-go
       - run: go get -u github.com/PuerkitoBio/goquery
