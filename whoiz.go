@@ -1,137 +1,157 @@
 package main
 
 import (
-  "fmt"
-  "strings"
-  "net"
-  "net/http"
-  "crypto/tls"
-  "log"
-  "io/ioutil"
-  "os"
-  "github.com/urfave/cli"
-  "github.com/likexian/whois-go"
-  "github.com/likexian/whois-parser-go"
+	"bytes"
+	"fmt"
+	"log"
+	"net"
+	"os"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/likexian/whois-go"
+	"github.com/likexian/whois-parser-go"
+	"github.com/urfave/cli"
+	"github.com/valyala/fasthttp"
 )
+
+type httpResp struct {
+	title string
+	desc  string
+	code  int
+}
 
 //////////
 //WHOIZ //
 //////////
 
 func main() {
-  app := cli.NewApp()
-  app.Name = "whoiz"
-  app.Usage = "because whois is loud af!\n\t example: whoiz domain.com"
+	app := cli.NewApp()
+	app.Name = "whoiz"
+	app.Usage = "because whois is loud af!\n\t example: whoiz domain.com"
 
-  app.Flags = []cli.Flag {
-    cli.StringFlag{
-      Name: "verbose",
-      Value: "",
-    },
-  }
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "verbose",
+			Value: "",
+		},
+	}
 
-  app.Action = func(c *cli.Context) error {
-    domainName := string(c.Args().Get(0))
+	app.Action = func(c *cli.Context) error {
+		domainName := string(c.Args().Get(0))
+		fmt.Println("Looking Up... \t ", domainName)
 
+		whoisResult, err := whois.Whois(domainName)
+		result, err := whoisparser.Parse(whoisResult)
+		printTitle("Domain Reg:")
+		if err == nil {
+			fmt.Println("\tRegistrant:     " + result.Registrant.Name)
+			fmt.Println("\tEmail:          " + result.Registrant.Email)
 
-    fmt.Printf("\nDomain Reg:")
-	whoisResult, err := whois.Whois(domainName)
-	result, err := whoisparser.Parse(whoisResult)
+			fmt.Println("\tRegistrar:      " + result.Registrar.RegistrarName + " [#" + result.Registrar.RegistrarID + "]")
+			fmt.Println("\tDomain Status:  " + result.Registrar.DomainStatus)
+			fmt.Println("\tCreated Date:   " + result.Registrar.CreatedDate)
+			fmt.Println("\tExpiration Date:" + result.Registrar.ExpirationDate)
+		} else {
+			fmt.Println("\tNo whois information available for " + domainName + " \n")
+		}
+
+		printTitle("HTTPS:")
+		res := fetchPage(domainName)
+		if res.code == 0 {
+			fmt.Println("\tPage Title: \t")
+			fmt.Println("\tResponse: \t")
+
+		} else {
+			fmt.Println("\tPage Title: \t", res.title)
+			fmt.Println("\tPage Desc: \t", res.desc)
+			fmt.Println("\tResponse: \t", res.code)
+
+		}
+
+		printTitle("Host(s):")
+		ips, err := net.LookupIP(domainName)
+		if err != nil {
+			fmt.Println("[!]\n")
+		} else if len(ips) == 0 {
+			fmt.Println("No host record found.")
+		}
+		for _, ip := range ips {
+			fmt.Println("\t", ip)
+		}
+
+		printTitle("NS record(s):")
+		nss, err := net.LookupNS(domainName)
+		if err != nil {
+			fmt.Println("[!]\n")
+		} else if len(nss) == 0 {
+			fmt.Println("No NS records found.")
+		}
+		for _, ns := range nss {
+			fmt.Println("\t", ns.Host)
+		}
+
+		printTitle("MX record(s):")
+		mxs, err := net.LookupMX(domainName)
+		if err != nil {
+			fmt.Println("[!]\n")
+		} else if len(mxs) == 0 {
+			fmt.Println("No MX records found.")
+		}
+		for _, mx := range mxs {
+			fmt.Println("\t", mx.Pref, " \t", mx.Host)
+		}
+
+		printTitle("TXT record(s):")
+		txts, err := net.LookupTXT(domainName)
+		if err != nil {
+			fmt.Println("[!]\n")
+		} else if len(txts) == 0 {
+			fmt.Println("No TXT records found.")
+		}
+		for _, txt := range txts {
+			fmt.Println("\t", txt)
+		}
+
+		return nil
+	}
+
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func printTitle(str string) {
+	fmt.Println("\n\033[1m" + str + "\033[0m")
+}
+
+func fetchPage(domain string) httpResp {
+	resp := httpResp{
+		title: " - ",
+		desc:  " - ",
+		code:  0,
+	}
+
+	url := string("http://" + domain)
+	rc, body, _ := fasthttp.Get(nil, url)
+	resp.code = rc
+	r := bytes.NewReader(body)
+	doc, err := goquery.NewDocumentFromReader(r)
 	if err == nil {
-	    fmt.Printf("\n\tRegistrant:     "+result.Registrant.Name)
-	    fmt.Printf("\n\tEmail:          "+result.Registrant.Email)
+		title := doc.Find("title").Text()
+		if title != "" {
+			resp.title = title
+		}
+		doc.Find("meta").Each(func(i int, s *goquery.Selection) {
+			if name, _ := s.Attr("name"); name == "description" {
+				desc, _ := s.Attr("content")
+				if desc != "" {
+					resp.desc = desc
+				}
+			}
+		})
 
-	    fmt.Printf("\n\tRegistrar:      "+result.Registrar.RegistrarName+" [#"+result.Registrar.RegistrarID+"]")
-	    fmt.Printf("\n\tDomain Status:  "+result.Registrar.DomainStatus)
-	    fmt.Printf("\n\tCreated Date:   "+result.Registrar.CreatedDate)
-	    fmt.Printf("\n\tExpiration Date:"+result.Registrar.ExpirationDate)
-	}else{
-        fmt.Printf("\n\tNo whois information available for "+domainName+" \n")
 	}
 
-    fmt.Printf("\nHTTPS:\n")
-    http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-    res, err := http.Get("https://"+domainName)
-
-    if err != nil {
-		fmt.Printf("\tReply: Invalid Response!\n")
-    }else{
-	    if res.StatusCode >= 200 && res.StatusCode <= 299 {
-	        fmt.Printf("\tReply: Valid [%d]\n", res.StatusCode)
-	    } else {
-	        fmt.Printf("\tReply: Invalid [%d]\n", res.StatusCode)
-	    }
-	    //Capture Page Title
-	    htmlBytes, _ := ioutil.ReadAll(res.Body)
-	    htmlStr := string(htmlBytes)
-	    domStart := strings.Index(htmlStr, "<title>") //get title
-	    if domStart == -1 {
-			 fmt.Printf("\tNo Page Title Found.\n")
-	    }else{
-		    domStart += 7 //skips <title>
-		    domEnd := strings.Index(htmlStr, "</title>")  //get ending
-		    if domEnd == -1 {
-				 fmt.Printf("\tError in Title.\n")
-		    }else{
-				siteTitle := []byte(htmlStr[domStart:domEnd])
-				fmt.Printf("\tPage Title: %s\n", siteTitle)
-		    }
-	    }
-    }
-
-
-
-    fmt.Printf("\nHost(s):\n")
-    ips, err := net.LookupIP(domainName)
-    if err != nil {
-		fmt.Printf("[!]\n")
-	}else if len(ips) == 0 {
-		fmt.Printf("No host record found.")
-	}
-    for _, ip := range ips {
-		fmt.Printf("\t%s\n", ip.String())
-	}
-
-    fmt.Printf("\nNS record(s):\n")
-    nss, err := net.LookupNS(domainName)
-	if err != nil {
-		fmt.Printf("[!]\n")
-	} else if len(nss) == 0 {
-		fmt.Printf("No NS records found.")
-	}
-	for _, ns := range nss {
-		fmt.Printf("\t%s\n", ns.Host)
-	}
-
-
-    fmt.Printf("\nMX record(s):\n")
-    mxs, err := net.LookupMX(domainName)
-	if err != nil {
-		fmt.Printf("[!]\n")
-	}else if len(mxs) == 0 {
-		fmt.Printf("No MX records found.")
-	}
-    for _, mx := range mxs {
-		fmt.Printf("\t%s %v\n", mx.Host, mx.Pref)
-	}
-
-
-    fmt.Printf("\nTXT record(s):\n")
-    txts, err := net.LookupTXT(domainName)
-	if err != nil {
-		fmt.Printf("[!]\n")
-	}else if len(txts) == 0 {
-		fmt.Printf("No TXT records found.")
-	}
-	for _, txt := range txts {
-		fmt.Printf("%s\n", txt)
-	}
-
-    return nil
-  }
-
-  err := app.Run(os.Args)
-  if err != nil {
-    log.Fatal(err)
-  }
+	return resp
 }

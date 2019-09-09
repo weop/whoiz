@@ -18,4 +18,4 @@ whoiz google.com
 [whois-parser-go](https://github.com/likexian/whois-parser-go)
 
 rel:
-1.0.3
+1.0.4
