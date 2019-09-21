@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/Ullaakut/nmap"
 	"github.com/likexian/whois-go"
 	"github.com/likexian/whois-parser-go"
 	"github.com/urfave/cli"
@@ -76,7 +77,9 @@ func main() {
 			fmt.Println("No host record found.")
 		}
 		for _, ip := range ips {
-			fmt.Println("\t", ip)
+			fmt.Println("\t\033[1m" + ip.String() + "\033[0m")
+			scanPorts(ip.String())
+
 		}
 
 		printTitle("NS record(s):")
@@ -123,6 +126,36 @@ func main() {
 
 func printTitle(str string) {
 	fmt.Println("\n\033[1m" + str + "\033[0m")
+}
+
+func scanPorts(ip string) {
+
+	scanner, err := nmap.NewScanner(
+		nmap.WithTargets(ip),
+		nmap.WithFastMode(),
+	)
+	if err != nil {
+		log.Fatalf("Unable to initialize scanner: %v", err)
+	}
+
+	result, err := scanner.Run()
+	if err != nil {
+		log.Fatalf("unable to run nmap scan: %v", err)
+	}
+
+	for _, host := range result.Hosts {
+		if len(host.Ports) == 0 || len(host.Addresses) == 0 {
+			continue
+		}
+
+		fmt.Println("\t Port Summary: ", host.Addresses[0], " => ")
+		for _, port := range host.Ports {
+			if port.State.String() != "closed" {
+				fmt.Printf("\t\t %d/%s \t%s \t%s\n", port.ID, port.Protocol, port.State, port.Service.Name)
+			}
+		}
+	}
+
 }
 
 func fetchPage(domain string) httpResp {
